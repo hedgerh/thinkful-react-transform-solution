@@ -1,38 +1,76 @@
 import React, { Component } from 'react';
-import { NICE, SUPER_NICE } from './colors';
+import request from 'superagent';
+import Image from './Image';
+import StyledContainer from './StyledContainer';
 
-class Counter extends Component {
+const API_URL = 'http://api.giphy.com';
+const RANDOM_ENDPOINT = '/v1/gifs/random';
+const GIPHY_PUBLIC_KEY = 'dc6zaTOxFJmzC';
+
+export class App extends Component {
   constructor(props) {
     super(props);
-    this.state = { counter: 0 };
-    this.interval = setInterval(() => this.tick(), 1000);
+    this.state = {
+      image: {},
+      query: 'goat'
+    };
+
+    this.fetchImage = this.fetchImage.bind(this);
+    this.onInput = this.onInput.bind(this);
   }
 
-  tick() {
-    this.setState({
-      counter: this.state.counter + this.props.increment
+  componentDidMount() {
+    this.fetchImage();
+  }
+
+  fetchImage() {
+    request.get(`${API_URL}${RANDOM_ENDPOINT}`)
+    .set('Content-Type', 'application/json')
+    .query({
+      tag: this.state.query,
+      api_key: GIPHY_PUBLIC_KEY })
+    .end((err, res) => {
+      if (err) {
+        return err;
+      }
+
+      const {
+        image_height,
+        image_url,
+        image_width } = res.body.data;
+
+      this.setState({
+        image: {
+          height: image_height,
+          src: image_url,
+          width: image_width
+        }
+      });
     });
   }
 
-  componentWillUnmount() {
-    clearInterval(this.interval);
+  onInput(e) {
+    this.setState({
+      query: e.target.value
+    });
   }
 
-  render() {
-    return (
-      <h1 style={{ color: this.props.color }}>
-        Counter ({this.props.increment}): {this.state.counter}
-      </h1>
-    );
-  }
-}
-
-export class App extends Component {
   render() {
     return (
       <div>
-        <Counter increment={1} color={NICE} />
-        <Counter increment={5} color={SUPER_NICE} />
+        <StyledContainer>
+          <h1>Random GIF Generator</h1>
+          <p>Get a random GIF related to your search query!</p>
+          <Image
+            { ...this.state.image } />
+          <input
+            type="text"
+            value={ this.state.query }
+            onChange={ this.onInput }
+            style={{ marginBottom: '16px' }}
+            placeholder='Enter a search query'/>
+          <button onClick={ this.fetchImage }>GIF me!</button>
+        </StyledContainer>
       </div>
     );
   }
